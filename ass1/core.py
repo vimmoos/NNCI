@@ -1,9 +1,9 @@
 import numpy as np
-from typing import Generator, Callable, Dict, Any
 from itertools import product
 from tqdm import tqdm
 from dataclasses import dataclass, field
 from matplotlib import pyplot as plt
+import csv
 
 
 def gen_data(
@@ -37,7 +37,9 @@ class Perceptron:
 
     def update(self):
         theta_fun = (self.compute_energy() <= self.c).astype(int)
-        self.weights += ((1 / x.shape[1]) * theta_fun * self.hebbians).sum(axis=0)
+        self.weights += ((1 / self.features.shape[1]) * theta_fun * self.hebbians).sum(
+            axis=0
+        )
 
     def shuffle_data(self):
         np.random.shuffle(self.data)
@@ -68,18 +70,22 @@ class Perceptron:
 
 
 def run_experiment(args):
-    alpha, N, n_dataset, max_iter = args
+    alpha, N, n_dataset, max_iter, c = args
     args = locals()
     del args["args"]
     P = int(alpha * N)
     solutions = 0
+    errs = []
     for _ in range(n_dataset):
         data = gen_data(P, N)
-        p = Perceptron(data)
+        p = Perceptron(data, epochs=max_iter, c=c)
         error = p.train()
         solutions += int(error == 0)
+        errs.append(error)
     return {
         "solutions": solutions,
+        "error_mean": np.mean(errs),
+        "error_std": np.std(errs),
         **args,
     }
 
@@ -87,10 +93,15 @@ def run_experiment(args):
 def run_experiments():
     alpha = np.linspace(0.5, 3, 11)
     # N = [20, 40, 100, 200, 500, 1000]
-    N = [20, 40, 100, 200]
-    n_datasets = [50, 100, 200]
-    max_iters = [100, 1000]
-    args = list(product(alpha, N, n_datasets, max_iters))
+    # N = [20, 40, 100, 200]
+    N = [20, 40]
+    n_datasets = [50, 100]
+    # n_datasets = [50, 100 , 200]
+    max_iters = [100]
+    # max_iters = [100,1000]
+    c = np.linspace(0.1, 3, 15)
+    # c = [0.1, 0.2, 0.5, 1]
+    args = list(product(alpha, N, n_datasets, max_iters, c))
     first = True
     res = []
     for x in tqdm(args):
