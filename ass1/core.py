@@ -1,4 +1,9 @@
-import numpy as np
+try:
+    import cupy as np
+except ImportError:
+    import numpy as np
+
+import numpy
 from itertools import product
 from tqdm import tqdm
 from dataclasses import dataclass, field
@@ -11,7 +16,7 @@ def gen_data(
     n_features: int,
 ):
     features = np.random.normal(loc=0, scale=1, size=(n_points, n_features))
-    labels = np.array([x or -1 for x in np.random.randint(0, 2, features.shape[0])])
+    labels = np.array([x or -1 for x in numpy.random.randint(0, 2, features.shape[0])])
     return np.c_[features, labels]
 
 
@@ -31,12 +36,17 @@ class Perceptron:
         self.weights = np.zeros((1, self.features.shape[1]))
         self.hebbians = self.features * self.labels
         self.energy = self.compute_energy()
+        self.embedding_strenght = np.zeros_like(self.theta_fun())
 
     def compute_energy(self):
         return np.dot(self.hebbians, self.weights.T)
 
+    def theta_fun(self):
+        return (self.compute_energy() <= self.c).astype(int)
+
     def update(self):
-        theta_fun = (self.compute_energy() <= self.c).astype(int)
+        theta_fun = self.theta_fun()
+        self.embedding_strenght += theta_fun
         self.weights += ((1 / self.features.shape[1]) * theta_fun * self.hebbians).sum(
             axis=0
         )
@@ -84,43 +94,50 @@ def run_experiment(args):
         errs.append(error)
     return {
         "solutions": solutions,
-        "error_mean": np.mean(errs),
-        "error_std": np.std(errs),
+        "error_mean": numpy.mean(errs),
+        "error_std": numpy.std(errs),
         **args,
     }
 
 
-def run_experiments():
-    alpha = np.linspace(0.5, 3, 11)
-    # N = [20, 40, 100, 200, 500, 1000]
+def run_experiments(file_name: str):
+    alpha = np.unique(
+        np.concatenate((np.linspace(0.5, 3, 11), np.linspace(1.5, 2.5, 10)))
+    )  # [::-1]
+
+    N = [20, 40, 100, 200, 500, 1000]  # [::-1]
     # N = [20, 40, 100, 200]
-    N = [20, 40]
-    n_datasets = [50, 100]
-    # n_datasets = [50, 100 , 200]
-    max_iters = [100]
-    # max_iters = [100,1000]
-    c = np.linspace(0.1, 3, 15)
+    # N = [20, 40]
+    # n_datasets = [50, 100]
+    n_datasets = [50, 100, 200]  # [::-1]
+    # max_iters = [100]
+    max_iters = [100, 1000]  # [::-1]
+    # c = [0]
+    c = np.linspace(0, 3, 15)  # [::-1]
     # c = [0.1, 0.2, 0.5, 1]
     args = list(product(alpha, N, n_datasets, max_iters, c))
     first = True
     res = []
+
+    file_path = f"{file_name}.csv"
     for x in tqdm(args):
         res.append(run_experiment(x))
         if len(res) > 50:
             if first:
-                with open("res.csv", "w") as fil:
+                with open(file_path, "w") as fil:
                     writer = csv.DictWriter(fil, fieldnames=res[0].keys())
                     writer.writeheader()
                 first = False
-            with open("res.csv", "a") as fil:
+            with open(file_path, "a") as fil:
                 writer = csv.DictWriter(fil, fieldnames=res[0].keys())
                 writer.writerows(res)
             res = []
     if res:
-        with open("res.csv", "a") as fil:
+        with open(file_path, "a") as fil:
             writer = csv.DictWriter(fil, fieldnames=res[0].keys())
             writer.writerows(res)
 
 
 if __name__ == "__main__":
-    run_experiments()
+    # print(run_experiment((1.5, 100, 100, 100, 2.357142857142857)))
+    run_experiments("final_no_c_gpu")
