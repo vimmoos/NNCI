@@ -9,12 +9,21 @@ from tqdm import tqdm
 from dataclasses import dataclass, field
 from matplotlib import pyplot as plt
 import csv
+import os
 
 
-def gen_data(
-    n_points: int,
-    n_features: int,
-):
+def gen_data(n_points: int, n_features: int):
+    """
+    Generates a dataset with P input feature vectors (ξ), each of length N, with values drawn
+    from a standard normal distribution (mean 0, standard deviation 1).
+    The output labels S are randomly assigned as -1 or 1 with equal probability 1/2.
+
+    Returns:
+    array([[ξ_1^1, ξ_2^1,..., ξ_N^1, S(ξ^1)],
+           [ξ_1^2, ξ_2^2,..., ξ_N^2, S(ξ^2)],
+           ...
+           [ξ_1^P, ξ_2^P,..., ξ_N^P, S(ξ^P)]]
+    """
     features = np.random.normal(loc=0, scale=1, size=(n_points, n_features))
     labels = np.array([x or -1 for x in numpy.random.randint(0, 2, features.shape[0])])
     return np.c_[features, labels]
@@ -22,6 +31,20 @@ def gen_data(
 
 @dataclass
 class Perceptron:
+    """
+    This class represents a Perceptron, a simple binary classification algorithm based on a linear predictor function.
+
+    Attributes:
+    - data: The input data for the Perceptron, including features and labels.
+    - epochs: The number of epochs for which the Perceptron will be trained.
+    - c: The threshold value for the activation function.
+    - weights: The weights of the Perceptron, initialized to zero.
+    - features: The feature vectors from the input data.
+    - labels: The labels from the input data.
+    - energy: The energy of the Perceptron, computed as the dot product of the Hebbian vectors and the weights.
+    - hebbians: The Hebbian vectors, computed as the product of the feature vectors and the labels.
+    """
+
     data: np.ndarray
     epochs: int = 10
     c: float = 0
@@ -124,6 +147,8 @@ def run_experiments(file_name: str):
         res.append(run_experiment(x))
         if len(res) > 50:
             if first:
+                if os.path.exists(file_path):
+                    print("Warning: res.csv already exists and will be overwritten.")
                 with open(file_path, "w") as fil:
                     writer = csv.DictWriter(fil, fieldnames=res[0].keys())
                     writer.writeheader()
