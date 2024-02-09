@@ -61,7 +61,6 @@ class Perceptron:
                 break
             self.shuffle_data()
             self.update()
-            self.stats()
         energy = self.compute_energy()
         return len(energy[energy < 0]) / len(self.features)
 

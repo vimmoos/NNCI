@@ -136,8 +136,8 @@ iris_minover = {
 iris_adatron = {
     "n_dataset": [100],
     "max_iters": [1000],
-    "lr": np.linspace(0.05, 2, 15),
-    "max_strenght": np.linspace(0, 200, 10),
+    "lr": [1],
+    "max_strenght": np.linspace(0, 25, 10),
     "FUNCTION": run_iris_adatron,
     "ORDER": [
         "n_dataset",
